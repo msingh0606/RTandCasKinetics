@@ -29,13 +29,21 @@ for position, base in enumerate(DNAstrand):
     if position < 23:
         continue
 
-    # Start assigning n = 1 from the 24th nucleotide
-    n = position - 23 + 1  # Index n starting at 1 for the 24th nucleotide
-    prob = calculate_dNTP_probability(base, dNTP_Conc, NRTI_Conc[0], Kaff, n)
+    # Index for result tracking (starts at 0 after skipping the first 23 nucleotides)
+    result_index = position - 23  
+
+    # Start assigning n = 1 for the function calculation
+    function_n = result_index + 1  
+
+    # Calculate the probability
+    prob = calculate_dNTP_probability(base, dNTP_Conc, NRTI_Conc[0], Kaff, function_n)
+
+    # Append the result
     results.append({
         "Position": len(DNAstrand) - position,  # Reverse position
         "Base": base,
-        "n": n,
+        "n": result_index,  # Index used for results
+        "Function_n": function_n,  # n used for function calculation
         "P_dNTP,n": prob
     })
 
@@ -51,3 +59,45 @@ for position, base in enumerate(DNAstrand):
 # Display results
 results_df = pd.DataFrame(results)
 print(results_df)
+
+import tellurium as te
+import matplotlib.pyplot as plt
+
+# Define the model in Antimony format with literature values
+model = """
+model MichaelisMentenFluorescence
+    // Parameters (example literature values)
+    kcat = 0.55;      // Turnover number (1/s)
+    Km = 663e-9;         // Michaelis constant (M)
+    E = 25e-9;       // Enzyme concentration (M)
+    S = 500e-9;          // Initial reporter concentration (M)
+    P = 0.0;          // Initial fluorescence (product concentration)
+
+    // Reaction (substrate to product)
+    v: S -> P; (kcat * E * S) / (Km + S);
+
+    // Species initial concentrations
+    S = 1.0; // Initial substrate concentration
+    P = 0.0; // Initial fluorescence
+end
+"""
+
+# Load the model
+rr = te.loadAntimonyModel(model)
+
+# Simulate over time
+result = rr.simulate(0, 1000000, 2000)  # Simulate from t=0 to t=10 with 100 points
+
+# Extract time and fluorescence (product concentration)
+time = result[:, 0]  # Time column
+fluorescence = result[:, 2]  # Product (P) column
+
+# Plot fluorescence vs. time
+plt.figure(figsize=(8, 5))
+plt.plot(time, fluorescence, label="Fluorescence", color="blue")
+plt.title("Cas12a Michaelis-Menten Kinetics: Fluorescence vs. Time")
+plt.xlabel("Time (s)")
+plt.ylabel("Fluorescence (RFU)")
+plt.legend()
+plt.grid(True)
+plt.show()
