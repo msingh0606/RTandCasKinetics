@@ -1,6 +1,6 @@
 import unittest
 
-# Mock the function to avoid dependency on the original script
+1  # Define the function
 def calculate_dNTP_probability(base, dNTP_Conc, NRTI_Conc, Kaff, n):
     if base == "T":
         fraction = dNTP_Conc / (dNTP_Conc + Kaff * NRTI_Conc)

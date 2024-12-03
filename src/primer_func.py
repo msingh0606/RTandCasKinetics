@@ -15,6 +15,20 @@ def calculate_annealing_time(P0, D, k, target_percentage):
     - time (numpy.ndarray): Time array for plotting (seconds)
     - P (numpy.ndarray): Primer concentration over time (M)
     """
+    # Input validation
+    if P0 <= 0:
+        raise ValueError("Primer concentration (P0) must be positive.")
+    if D <= 0:
+        raise ValueError("DNA concentration (D) must be positive.")
+    if k <= 0:
+        raise ValueError("Reaction rate constant (k) must be positive.")
+    if target_percentage < 0 or target_percentage >= 100:
+        raise ValueError("Target percentage must be between 0 and 100 (exclusive).")
+    
+    # Special case for 0% annealing
+    if target_percentage == 0:
+        return 0, np.array([0]), np.array([P0])  # No time required, concentration remains constant
+
     # Calculate the target primer concentration
     P_target = P0 * (1 - target_percentage / 100)
 

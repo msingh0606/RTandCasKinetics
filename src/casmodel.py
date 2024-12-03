@@ -1,97 +1,108 @@
 import numpy as np
 import tellurium as te
 import matplotlib.pyplot as plt
+from probability_func import calculate_dNTP_probability
 
-from probability_func import calculate_dNTP_probability  # Ensure this module is correctly defined
-
-# INPUT REAGENT CONCENTRATIONS
+# INPUT PARAMETERS
 forwardDNA = 'TTTTTTTTTTTTTGATGATGTGAAGGTGTTGTCGTTTATTTATTTATTTATTTATTTCTATCTTTCCTCTTAATTCGACG'
 DNAstrand = forwardDNA[::-1]
-casregion = 'ATGATGTGAAGGTGTTGTCG'  # Cas12a binding region
-dNTPConc_nM = 500  # dNTP concentration in nM
-dNTP_Conc = dNTPConc_nM * 1e-9  # Convert to M
-NRTI_Conc = np.logspace(-10, -5, 5)  # Example: 5 points for simplicity
-Kaff = 0.3  # Relative inhibitory affinity
-TemplateConc = 5e-9  # Template concentration in M
-TemplateSample = int(TemplateConc * 6.022e23 / 1000)  # Template copies in 1 µL sample
+casregion = 'ATGATGTGAAGGTGTTGTCG'
+PrimerConc = 50e-9  # Primer concentration (M)
+dNTPConc_nM = 500
+dNTP_Conc = dNTPConc_nM * 1e-9
+NRTI_Conc = np.logspace(-10, -5, 5)
+Kaff = 0.3
 
-# Define nucleotide addition rate
-nucleotide_addition_rate = 0.01  # Basepairs per second
+# Reaction constants
+nucleotide_addition_rate = 18  # Basepairs per second
+kcat = 0.55  # Michaelis-Menten turnover number (1/s)
+Km = 663e-9  # Michaelis constant (M)
+E = 25e-9  # Enzyme concentration (M)
+
+# Simulation parameters
+time_total = 7200  # Total simulation time (seconds)
+
+# Estimate primer binding time (diffusion-limited)
+k_diff = 1e9  # Diffusion-limited rate constant (M^-1 s^-1)
+t_bind = 1 / (k_diff * PrimerConc)
+print(f"Estimated primer binding time: {t_bind:.2e} seconds")
 
 # Initialize plot
 plt.figure(figsize=(10, 6))
 
-# Simulate for each NRTI concentration
 for nrti_conc in NRTI_Conc:
     print(f"Simulating for NRTI_Conc = {nrti_conc:.1e} M")
-    cumulative_time = 0  # Reset cumulative time for each concentration
-    found_casregion = False
+    cumulative_time = t_bind  # Start with primer binding time
+    reached_casregion = False
+    fluorescence = []
+    times = []
+    nucleotides_added = 0
 
-    # RT synthesis simulation with a time limit
-    for position, base in enumerate(DNAstrand):
-        if position < 23:
-            # Skip the first 23 nucleotides
-            cumulative_time += 1 / nucleotide_addition_rate
-            continue
+    # Simulate nucleotide addition
+    while cumulative_time <= time_total:
+        if not reached_casregion and nucleotides_added < len(DNAstrand):
+            # Calculate probability for nucleotide addition
+            prob = calculate_dNTP_probability(
+                base=DNAstrand[nucleotides_added],
+                dNTP_Conc=dNTP_Conc,
+                NRTI_Conc=nrti_conc,
+                Kaff=Kaff,
+                n=nucleotides_added + 1
+            )
+            prob = max(prob, 1e-6)  # Prevent division by zero
 
-        # Calculate probability with amplified impact
-        prob = calculate_dNTP_probability(base, dNTP_Conc, nrti_conc, Kaff, n=position - 23 + 1)
-        prob = max(prob**2, 1e-6)  # Amplify impact of NRTI_Conc on probability
+            # Calculate nucleotide addition time delay
+            nucleotide_delay = (1 / nucleotide_addition_rate) / prob
+            cumulative_time += nucleotide_delay
 
-        # Adjust time delay with amplified probability
-        time_delay = (1 / nucleotide_addition_rate) / prob
-        cumulative_time += time_delay
+            # Check if Cas region is reached
+            if DNAstrand[nucleotides_added:nucleotides_added + len(casregion)] == casregion[::-1]:
+                reached_casregion = True
+                print(f"Cas region reached after {cumulative_time:.2f} seconds.")
 
-        # Debugging: Print key values
-        print(f"NRTI_Conc: {nrti_conc:.1e}, Position: {position}, Probability: {prob:.6f}, Time Delay: {time_delay:.6f}, Cumulative Time: {cumulative_time:.2f}")
+            nucleotides_added += 1  # Increment nucleotides
 
-        # Check for Cas12a region
-        if not found_casregion and DNAstrand[position:position + len(casregion)] == casregion[::-1]:
-            found_casregion = True
-            print(f"Cas12a region reached at position {len(DNAstrand) - position} after {cumulative_time:.2f} seconds.")
-            break
+        if reached_casregion:
+            break  # Stop nucleotide addition once Cas region is reached
 
-        # Stop if cumulative time exceeds 120 minutes
-        if cumulative_time > 7200:
-            print(f"Cas region not reached within 120 minutes for NRTI_Conc = {nrti_conc:.1e}.")
-            break
-
-    if found_casregion:
-        # Start Michaelis-Menten kinetics
-        initial_S_concentration = dNTP_Conc * prob  # Use probability to scale substrate concentration
+    # Simulate Michaelis-Menten fluorescence with Tellurium
+    if reached_casregion:
+        substrate_concentration = PrimerConc  # Assume all primers contribute once Cas region is reached
         model = f"""
         model MichaelisMentenFluorescence
-            kcat = 0.55;      // Turnover number (1/s)
-            Km = 663e-9;      // Michaelis constant (M)
-            E = 25e-9;        // Enzyme concentration (M)
-            S = {initial_S_concentration}; // Adjusted substrate concentration
-            P = 0.0;          // Initial fluorescence (product concentration)
+            kcat = {kcat};      // Turnover number (1/s)
+            Km = {Km};         // Michaelis constant (M)
+            E = {E};           // Enzyme concentration (M)
+            S = {substrate_concentration};  // Initial substrate concentration (M)
+            P = 0.0;           // Initial fluorescence (product concentration)
 
             v: S -> P; (kcat * E * S) / (Km + S);
-            S = {initial_S_concentration};
+
+            S = {substrate_concentration};
             P = 0.0;
         end
         """
+
         rr = te.loadAntimonyModel(model)
-        result = rr.simulate(0, 7200, 1000)  # Simulate for 120 minutes (7200 seconds)
-        time = result[:, 0]
-        fluorescence = result[:, 2]
+        result = rr.simulate(0, time_total - cumulative_time, 1000)
 
-        # Scale fluorescence by the total number of template copies
-        total_fluorescence = fluorescence * TemplateSample
+        # Extract time and fluorescence from the Tellurium results
+        time = result[:, 0] + cumulative_time  # Adjust time offset by cumulative time
+        fluorescence = result[:, 2]  # Product concentration (fluorescence)
+
     else:
-        # If Cas region is not reached, set total fluorescence to 0
-        time = np.linspace(0, 7200, 1000)  # Generate a flat time array
-        total_fluorescence = np.zeros_like(time)
+        # If Cas region is not reached, generate a flat zero fluorescence curve
+        time = np.linspace(0, time_total, 1000)
+        fluorescence = np.zeros_like(time)
 
-    # Plot scaled or flat fluorescence
-    plt.plot(time, total_fluorescence, label=f"NRTI_Conc = {nrti_conc:.1e} M")
+    # Plot fluorescence curve
+    plt.plot(time, fluorescence, label=f"NRTI_Conc = {nrti_conc:.1e}")
 
-# Finalize plot with 120-minute bounds
-plt.title("Michaelis-Menten Kinetics with RT Incorporation for Scaled Template Copies")
+# Finalize plot
+plt.title("Nucleotide Addition and Michaelis-Menten Fluorescence (Tellurium)")
 plt.xlabel("Time (s)")
 plt.ylabel("Fluorescence (RFU)")
-plt.xlim(0, 7200)  # Restrict x-axis to 120 minutes
+plt.xlim(0, time_total)
 plt.legend()
 plt.grid(True)
 plt.show()
