@@ -68,18 +68,18 @@ for nrti_conc in NRTI_Conc:
 
     # Simulate Michaelis-Menten fluorescence with Tellurium
     if reached_casregion:
-        scaled_substrate_concentration = 25e-9 * cumulative_probability  # Scale by probability
+        scaled_kcat = kcat * cumulative_probability  # Scale by probability
         model = f"""
         model MichaelisMentenFluorescence
-            kcat = {kcat};      // Turnover number (1/s)
+            kcat = {scaled_kcat};      // Turnover number (1/s)
             Km = {Km};         // Michaelis constant (M)
             E = {E};           // Enzyme concentration (M)
-            S = {scaled_substrate_concentration};  // Initial substrate concentration (M)
+            S = 25e-9;  // Initial substrate concentration (M)
             P = 0.0;           // Initial fluorescence (product concentration)
 
             v: S -> P; (kcat * E * S) / (Km + S);
 
-            S = {scaled_substrate_concentration};
+            S = 25e-9;
             P = 0.0;
         end
         """
