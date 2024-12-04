@@ -9,9 +9,9 @@ DNAstrand = forwardDNA[::-1]
 casregionforward = 'ATGATGTGAAGGTGTTGTCG'
 casregion = casregionforward[::-1]
 PrimerConc = 50e-9  # Primer concentration (M)
-dNTPConc_nM = 500
+dNTPConc_nM = 100
 dNTP_Conc = dNTPConc_nM * 1e-9  # dNTP concentration (M)
-NRTI_Conc = np.logspace(-10, -5, 5)  # varying NRTI concentrations
+NRTI_Conc = np.logspace(-10, -5, 6)  # varying NRTI concentrations
 TemplateConc = 5e-9  # Template Concentration (M)
 TemplateCopies = TemplateConc * 6.022e23 * 1000  # copies of template in 1uL reaction
 Kaff = 0.3  # K_aff of TFV-DP, the drug we use
@@ -20,7 +20,7 @@ Kaff = 0.3  # K_aff of TFV-DP, the drug we use
 nucleotide_addition_rate = 5  # Basepairs per second RT incorporates
 kcat = 0.55  # Michaelis-Menten turnover number (1/s)
 Km = 663e-9  # Michaelis constant (M)
-E = 25e-9  # Enzyme concentration (M)
+E = 5e-9  # Enzyme concentration (M)
 
 # Simulation parameters
 time_total = 7200  # Total simulation time (seconds)
@@ -74,12 +74,12 @@ for nrti_conc in NRTI_Conc:
             kcat = {scaled_kcat};      // Turnover number (1/s)
             Km = {Km};         // Michaelis constant (M)
             E = {E};           // Enzyme concentration (M)
-            S = 25e-9;  // Initial substrate concentration (M)
+            S = 5e-9;  // Initial substrate concentration (M)
             P = 0.0;           // Initial fluorescence (product concentration)
 
             v: S -> P; (kcat * E * S) / (Km + S);
 
-            S = 25e-9;
+            S = 5e-9;
             P = 0.0;
         end
         """
@@ -97,15 +97,15 @@ for nrti_conc in NRTI_Conc:
         # If Cas region is not reached, generate a flat zero fluorescence curve
         time = np.linspace(0, time_total, 1000)
         fluorescence = np.zeros_like(time)
-
+    time_mins = time/60 # convert to minutes
     # Plot fluorescence curve
-    plt.plot(time, fluorescence, label=f"NRTI_Conc = {nrti_conc:.1e}")
+    plt.plot(time_mins, fluorescence, label=f"NRTI_Conc = {nrti_conc:.1e}")
 
 # Finalize plot
 plt.title("Nucleotide Addition and Michaelis-Menten Fluorescence")
-plt.xlabel("Time (s)")
+plt.xlabel("Time (minutes)")
 plt.ylabel("Fluorescence (RFU)")
-plt.xlim(0, time_total)
+plt.xlim(0, 120)
 plt.legend()
 plt.grid(True)
 plt.show()
