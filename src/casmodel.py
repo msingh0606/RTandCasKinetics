@@ -1,111 +1,130 @@
-import numpy as np
-import tellurium as te
-import matplotlib.pyplot as plt
-from probability_func import calculate_dNTP_probability
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QGridLayout,
+    QLabel, QLineEdit, QPushButton, QDoubleSpinBox, QMessageBox
+)
+from PyQt5.QtCore import Qt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import sys
+from casmodel_func import compute_fluorescence
 
-# INPUT PARAMETERS
-forwardDNA = 'TTTTTTTTTTTTTGATGATGTGAAGGTGTTGTCGTTTATTTATTTATTTATTTATTTCTATCTTTCCTCTTAATTCGACG'
-DNAstrand = forwardDNA[::-1]
-casregionforward = 'ATGATGTGAAGGTGTTGTCG'
-casregion = casregionforward[::-1]
-PrimerConc = 50e-9  # Primer concentration (M)
-dNTPConc_nM = 100
-dNTP_Conc = dNTPConc_nM * 1e-9  # dNTP concentration (M)
-NRTI_Conc = np.logspace(-10, -5, 6)  # varying NRTI concentrations
-TemplateConc = 5e-9  # Template Concentration (M)
-TemplateCopies = TemplateConc * 6.022e23 * 1000  # copies of template in 1uL reaction
-Kaff = 0.3  # K_aff of TFV-DP, the drug we use
 
-# Reaction constants
-nucleotide_addition_rate = 5  # Basepairs per second RT incorporates
-kcat = 0.55  # Michaelis-Menten turnover number (1/s)
-Km = 663e-9  # Michaelis constant (M)
-E = 5e-9  # Enzyme concentration (M)
+class FluorescenceSimulationApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Fluorescence Simulation")
+        self.setGeometry(100, 100, 800, 600)
+        self.initUI()
 
-# Simulation parameters
-time_total = 7200  # Total simulation time (seconds)
+    def initUI(self):
+        # Main widget
+        central_widget = QWidget(self)
+        self.setCentralWidget(central_widget)
 
-# Estimate primer binding time (diffusion-limited)
-k_diff = 1e5  # Diffusion-limited rate constant (M^-1 s^-1)
-t_bind = 1 / (k_diff * PrimerConc)  # time of binding
-print(f"Estimated primer binding time: {t_bind:.2e} seconds")
+        # Layout
+        self.layout = QVBoxLayout()
+        central_widget.setLayout(self.layout)
 
-# Initialize plot
-plt.figure(figsize=(10, 6))
+        # Input fields
+        self.input_layout = QGridLayout()
+        self.layout.addLayout(self.input_layout)
 
-for nrti_conc in NRTI_Conc:
-    print(f"Simulating for NRTI_Conc = {nrti_conc:.1e} M")
+        self.forwardDNA_label = QLabel("Forward DNA:")
+        self.forwardDNA_input = QLineEdit()
+        self.forwardDNA_input.setText("TTTTTTTTTTTTTGATGATGTGAAGGTGTTGTCGTTTATTTATTTATTTATTTATTTCTATCTTTCCTCTTAATTCGACG")
 
-    cumulative_time = t_bind  # Start with primer binding time
-    cumulative_probability = 1.0  # Start with full probability
-    reached_casregion = False
-    nucleotides_added = 23  # Start synthesis at the 24th nucleotide
+        self.TemplateConc_label = QLabel("Template Concentration (nM):")
+        self.TemplateConc_input = QDoubleSpinBox()
+        self.TemplateConc_input.setRange(0, 1e6)
+        self.TemplateConc_input.setDecimals(2)
+        self.TemplateConc_input.setValue(5.0)
 
-    while cumulative_time <= time_total and not reached_casregion:
-        if nucleotides_added < len(DNAstrand):
-            # Calculate probability for nucleotide addition
-            prob = calculate_dNTP_probability(
-                base=DNAstrand[nucleotides_added],
-                dNTP_Conc=dNTP_Conc,
-                NRTI_Conc=nrti_conc,
-                Kaff=Kaff,
-            )
-            prob = max(prob, 1e-6)  # Prevent division by zero or unrealistic values
-            cumulative_probability *= prob
+        self.PrimerConc_label = QLabel("Primer Concentration (nM):")
+        self.PrimerConc_input = QDoubleSpinBox()
+        self.PrimerConc_input.setRange(0, 1e6)
+        self.PrimerConc_input.setDecimals(2)
+        self.PrimerConc_input.setValue(50.0)
 
-            # Calculate nucleotide addition time delay
-            nucleotide_delay = (1 / nucleotide_addition_rate) / prob
-            cumulative_time += nucleotide_delay
+        self.dNTPConc_label = QLabel("dNTP Concentration (nM):")
+        self.dNTPConc_input = QDoubleSpinBox()
+        self.dNTPConc_input.setRange(0, 1e6)
+        self.dNTPConc_input.setDecimals(2)
+        self.dNTPConc_input.setValue(100.0)
 
-            # Check if Cas region is reached
-            if DNAstrand[nucleotides_added:nucleotides_added + len(casregion)] == casregion:
-                reached_casregion = True
-                print(f"Cas region reached after {cumulative_time:.2f} seconds.")
+        self.Kaff_label = QLabel("Kaff:")
+        self.Kaff_input = QDoubleSpinBox()
+        self.Kaff_input.setRange(0, 1e6)
+        self.Kaff_input.setDecimals(2)
+        self.Kaff_input.setValue(0.3)
 
-            nucleotides_added += 1
-        else:
-            break  # No more nucleotides to process
+        self.run_button = QPushButton("Run Simulation")
+        self.run_button.clicked.connect(self.run_simulation)
 
-    # Simulate Michaelis-Menten fluorescence with Tellurium
-    if reached_casregion:
-        scaled_kcat = kcat * cumulative_probability  # Scale by probability
-        model = f"""
-        model MichaelisMentenFluorescence
-            kcat = {scaled_kcat};      // Turnover number (1/s)
-            Km = {Km};         // Michaelis constant (M)
-            E = {E};           // Enzyme concentration (M)
-            S = 5e-9;  // Initial substrate concentration (M)
-            P = 0.0;           // Initial fluorescence (product concentration)
+        # Add widgets to the input layout
+        self.input_layout.addWidget(self.forwardDNA_label, 0, 0)
+        self.input_layout.addWidget(self.forwardDNA_input, 0, 1)
+        self.input_layout.addWidget(self.TemplateConc_label, 1, 0)
+        self.input_layout.addWidget(self.TemplateConc_input, 1, 1)
+        self.input_layout.addWidget(self.PrimerConc_label, 2, 0)
+        self.input_layout.addWidget(self.PrimerConc_input, 2, 1)
+        self.input_layout.addWidget(self.dNTPConc_label, 3, 0)
+        self.input_layout.addWidget(self.dNTPConc_input, 3, 1)
+        self.input_layout.addWidget(self.Kaff_label, 4, 0)
+        self.input_layout.addWidget(self.Kaff_input, 4, 1)
+        self.input_layout.addWidget(self.run_button, 5, 0, 1, 2)
 
-            v: S -> P; (kcat * E * S) / (Km + S);
+        # Matplotlib canvas for plotting
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+        self.layout.addWidget(self.canvas)
 
-            S = 5e-9;
-            P = 0.0;
-        end
-        """
-        rr = te.loadAntimonyModel(model)
-        result = rr.simulate(0, time_total - cumulative_time, 1000)
+    def run_simulation(self):
+        # Get inputs
+        forwardDNA = self.forwardDNA_input.text()
+        TemplateConc_nM = self.TemplateConc_input.value()
+        PrimerConc_nM = self.PrimerConc_input.value()
+        dNTPConc_nM = self.dNTPConc_input.value()
+        Kaff = self.Kaff_input.value()
 
-        # Extract time and fluorescence from Tellurium results
-        time = result[:, 0] + cumulative_time  # Adjust time offset by cumulative time
-        fluorescence = result[:, 2]  # Product concentration (fluorescence)
+        # Validate inputs
+        if not all(base in "ATCG" for base in forwardDNA.upper()):
+            QMessageBox.critical(self, "Error", "Forward DNA sequence contains invalid characters.")
+            return
 
-        # Scale fluorescence for the total number of templates
-        fluorescence *= TemplateCopies
+        try:
+            # Compute fluorescence
+            results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM, Kaff)
 
-    else:
-        # If Cas region is not reached, generate a flat zero fluorescence curve
-        time = np.linspace(0, time_total, 1000)
-        fluorescence = np.zeros_like(time)
-    time_mins = time/60 # convert to minutes
-    # Plot fluorescence curve
-    plt.plot(time_mins, fluorescence, label=f"NRTI_Conc = {nrti_conc:.1e}")
+            # Pass fixed NRTI concentrations
+            nrti_concs = [1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5]
+            self.plot_fluorescence(results, nrti_concs)
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred: {e}")
 
-# Finalize plot
-plt.title("Nucleotide Addition and Michaelis-Menten Fluorescence")
-plt.xlabel("Time (minutes)")
-plt.ylabel("Fluorescence (RFU)")
-plt.xlim(0, 120)
-plt.legend()
-plt.grid(True)
-plt.show()
+    def plot_fluorescence(self, results, nrti_concs):
+        """Plot the fluorescence on the embedded Matplotlib canvas."""
+        self.figure.clear()
+        ax = self.figure.add_subplot(111)
+        for (time_mins, fluorescence), nrti_conc in zip(results, nrti_concs):
+            ax.plot(time_mins, fluorescence, label=f"NRTI_Conc = {nrti_conc:.1e}")
+        ax.set_title("Combined Kinetics of RT Incorporation and Cas12a Cleavage")
+        ax.set_xlabel("Time (minutes)")
+        ax.set_ylabel("Fluorescence (RFU)")
+        ax.set_xlim(0, 120)
+        ax.legend()
+        ax.grid(True)
+        self.canvas.draw()
+
+
+
+# Main loop
+def main():
+    app = QApplication(sys.argv)
+    window = FluorescenceSimulationApp()
+    window.show()
+    sys.exit(app.exec_())
+
+
+# Uncomment the line below to run the application locally:
+main()
