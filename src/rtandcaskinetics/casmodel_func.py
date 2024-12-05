@@ -1,7 +1,7 @@
 import numpy as np
 import tellurium as te
 import matplotlib.pyplot as plt
-from probability_func import calculate_dNTP_probability
+from rtandcaskinetics.probability_func import calculate_dNTP_probability
 
 def compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM, Kaff):
     """

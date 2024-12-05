@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import sys
-from casmodel_func import compute_fluorescence
+from rtandcaskinetics.casmodel_func import compute_fluorescence
 
 
 class FluorescenceSimulationApp(QMainWindow):

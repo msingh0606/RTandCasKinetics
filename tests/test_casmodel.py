@@ -1,5 +1,5 @@
 import unittest
-from casmodel_func import compute_fluorescence, plot_fluorescence
+from rtandcaskinetics.casmodel_func import compute_fluorescence, plot_fluorescence
 
 class TestComputeFluorescence(unittest.TestCase):
     def test_valid_inputs(self):

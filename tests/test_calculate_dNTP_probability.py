@@ -1,5 +1,5 @@
 import unittest
-from probability_func import calculate_dNTP_probability
+from rtandcaskinetics.probability_func import calculate_dNTP_probability
 
 class TestCalculateDNTPProbability(unittest.TestCase):
     
