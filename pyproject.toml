@@ -17,3 +17,6 @@ build-backend = "pdm.backend"
 
 [tool.pdm]
 distribution = true
+
+[project.urls]
+Homepage = "https://github.com/msingh0606/RTandCasKinetics"
