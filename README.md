@@ -7,43 +7,20 @@ Users do not need to be familiar with python to use this program. The users will
 ## Installation
 * To install, first install `pdm`, and make sure it's accessible in your $PATH.
 * You can install it by going to 'https://pdm-project.org/en/latest/' and following their instructions to download PDM.
-Prepare the local python environment by running `pdm install` and follow the instructions provided
+* Prepare the local python environment by running `pdm install` and follow the instructions provided
 
-## Contributing
-To add new packages (e.g. like pip) to your local python environment (like an anaconda environment) run `pdm add matplotlib` for example if you wanted to add matplotlib. 
-
-## Documents
-The documents contain three main folders: docs, src, and tests.
-* Docs contain the functional and component specifications and a background presentation
-* Src contains the functions (casmodel_func.py and probability_func.py) and the GUI interface (casmodel.py)
-* Tests contain the two test modules for the functions: casmodel_func.py and probability_func.py.
-
-## Getting Started
-* To access the package, go to your terminal and type 
+## User Guide:
+* To access the package, go to your terminal (or jupyter notebook) and type:
 ```
 pip install RTandCasKinetics
 ```
-* If you cannot find the root directory, enter the following code: `find ~/ -name "RTandCasKinetics"`. It will give many things, but the last will show the root.
-* To go to the root directory type in the results from the search and type `cd enter_directory_here`
-* To run this, go to the root directory `RTandCasKinetics/` and run the command 
-```
-pdm run src/rtandcaskinetics/casmodel.py
-```
-
-## User Guide:
-If you are using a jupyter notebook, use the following code which does not have an interactive interface:
+* If you are using a jupyter notebook, use the following code which does not have an interactive interface:
 ```
 import matplotlib.pyplot as plt
 from rtandcaskinetics.casmodel_func import compute_fluorescence
 
 # Define the function to simulate fluorescence and plot
 def run_simulation(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM):
-    if not forwardDNA or TemplateConc_nM <= 0 or PrimerConc_nM <= 0 or dNTPConc_nM <= 0:
-        raise ValueError("All inputs must be valid non-zero values.")
-
-    if not all(base in "ATCG" for base in forwardDNA.upper()):
-        raise ValueError("Forward DNA sequence contains invalid characters.")
-
     # Simulate fluorescence
     results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM)
 
@@ -72,4 +49,28 @@ dNTPConc_nM = 100.0
 run_simulation(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM)
 ```
 
-* If using terminal, follow the steps above
+* If using terminal, do the following steps: 
+* To access the package, go to your terminal and type:
+```
+pip install RTandCasKinetics
+```
+* If you cannot find the root directory, enter the following code: 
+```
+find ~/ -name "RTandCasKinetics. 
+```
+It will give many things, but the last will show the root.
+* To go to the root directory type in the results from the search and type `cd enter_directory_here`
+* To run this, go to the root directory `RTandCasKinetics/` and run the command 
+```
+pdm run src/rtandcaskinetics/casmodel.py
+```
+
+
+## Contributing
+To add new packages (e.g. like pip) to your local python environment (like an anaconda environment) run `pdm add matplotlib` for example if you wanted to add matplotlib. 
+
+## Documents
+The documents contain three main folders: docs, src, and tests.
+* Docs contain the functional and component specifications and a background presentation
+* Src contains the functions (casmodel_func.py and probability_func.py) and the GUI interface (casmodel.py)
+* Tests contain the two test modules for the functions: casmodel_func.py and probability_func.py.
