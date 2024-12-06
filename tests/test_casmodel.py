@@ -8,9 +8,8 @@ class TestComputeFluorescence(unittest.TestCase):
         TemplateConc_nM = 5
         PrimerConc_nM = 50
         dNTPConc_nM = 100
-        Kaff = 0.3
 
-        results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM, Kaff)
+        results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM)
         self.assertIsInstance(results, list)
         self.assertGreater(len(results), 0)
         for time_mins, fluorescence in results:
@@ -23,9 +22,8 @@ class TestComputeFluorescence(unittest.TestCase):
         TemplateConc_nM = 5 
         PrimerConc_nM = 0  # Zero primer concentration
         dNTPConc_nM = 100
-        Kaff = 0.3
 
-        results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM, Kaff)
+        results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM)
         for time_mins, fluorescence in results:
             self.assertTrue(all(f == 0 for f in fluorescence), "Fluorescence should be zero when primer concentration is zero.")
 
@@ -35,10 +33,9 @@ class TestComputeFluorescence(unittest.TestCase):
         TemplateConc_nM = 5
         PrimerConc_nM = 50
         dNTPConc_nM = 100
-        Kaff = 0.3
 
         with self.assertRaises(ValueError):
-            compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM, Kaff)
+            compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM)
 
     def test_negative_concentration(self):
         """Test compute_fluorescence with negative concentration."""
@@ -46,10 +43,9 @@ class TestComputeFluorescence(unittest.TestCase):
         TemplateConc_nM = -5 # Negative concentration
         PrimerConc_nM = 50
         dNTPConc_nM = 100
-        Kaff = 0.3
 
         with self.assertRaises(ValueError):
-            compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM, Kaff)
+            compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM)
 
     def test_fluorescence_data_length(self):
         """Test that compute_fluorescence returns consistent data lengths."""
@@ -57,9 +53,8 @@ class TestComputeFluorescence(unittest.TestCase):
         TemplateConc_nM = 5
         PrimerConc_nM = 50
         dNTPConc_nM = 100
-        Kaff = 0.3
 
-        results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM, Kaff)
+        results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM)
         for time_mins, fluorescence in results:
             self.assertEqual(len(time_mins), len(fluorescence), "Time and fluorescence data lengths should match.")
 
@@ -70,9 +65,8 @@ class TestPlotFluorescence(unittest.TestCase):
         TemplateConc_nM = 5
         PrimerConc_nM = 50
         dNTPConc_nM = 100
-        Kaff = 0.3
 
-        results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM, Kaff)
+        results = compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM)
 
         try:
             plot_fluorescence(results)

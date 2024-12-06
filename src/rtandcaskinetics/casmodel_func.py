@@ -3,7 +3,7 @@ import tellurium as te
 import matplotlib.pyplot as plt
 from rtandcaskinetics.probability_func import calculate_dNTP_probability
 
-def compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM, Kaff):
+def compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM):
     """
     Computes the fluorescence kinetics based on the input parameters.
 
@@ -12,13 +12,12 @@ def compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM
         TemplateConc_nM (float): Template concentration in nanomolar.
         PrimerConc_nM (float): Primer concentration in nanomolar.
         dNTPConc_nM (float): dNTP concentration in nanomolar.
-        Kaff (float): Affinity constant for the drug.
 
     Returns:
         List of (time_mins, fluorescence) for each NRTI concentration.
     """
     # Validate inputs
-    if TemplateConc_nM < 0 or PrimerConc_nM < 0 or dNTPConc_nM < 0 or Kaff < 0:
+    if TemplateConc_nM < 0 or PrimerConc_nM < 0 or dNTPConc_nM < 0:
         raise ValueError("Concentrations must be non-negative.")
     if not all(base in "ATCG" for base in forwardDNA.upper()):
         raise ValueError("DNA sequence contains invalid characters.")
@@ -32,6 +31,7 @@ def compute_fluorescence(forwardDNA, TemplateConc_nM, PrimerConc_nM, dNTPConc_nM
     TemplateConc = TemplateConc_nM * 1e-9  # Template concentration (M)
 
     # Constants
+    Kaff = 0.3  # Affinity constant (M^-1)
     TemplateCopies = TemplateConc * 6.022e23 * 1000  # copies in 1uL reaction
     NRTI_Conc = np.logspace(-10, -5, 6)  # varying NRTI concentrations
     nucleotide_addition_rate = 5  # Basepairs per second
