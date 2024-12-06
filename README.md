@@ -14,6 +14,7 @@ Prepare the local python environment by running `pdm install` and follow the ins
 * If you cannot find the root directory, enter the following code: `find ~/ -name "RTandCasKinetics"`. It will give many things, but the last will show the root.
 * To go to the root directory type in the results from the search and type `cd directory`
 * To run this, go to the root directory `RTandCasKinetics/` and run the command `pdm run src/rtandcaskinetics/casmodel.py`
+* Adding information
 
 ## Contributing
 To add new packages (e.g. like pip) to your local python environment (like an anaconda environment) run `pdm add matplotlib` for example if you wanted to add matplotlib. 
@@ -23,3 +24,5 @@ The documents contain three main folders: docs, src, and tests.
 * Docs contain the functional and component specifications and a background presentation
 * Src contains the functions (casmodel_func.py and probability_func.py) and the GUI interface (casmodel.py)
 * Tests contain the two test modules for the functions: casmodel_func.py and probability_func.py.
+
+
