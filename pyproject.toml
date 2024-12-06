@@ -1,6 +1,6 @@
 [project]
 name = "RTandCasKinetics"
-version = "0.1.0"
+version = "0.0.1"
 description = "Model that investigates the combined kinetics of HIV reverse transcriptase and CRISPR Cas12a."
 authors = [
     {name = "Maya Singh", email = "msingh6@uw.edu"},
